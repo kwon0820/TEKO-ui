@@ -28,6 +28,11 @@
 <body>
   <main class="phone" id="app" aria-label="TEKO 모바일 앱">
     <svg class="card-shape-defs" width="0" height="0" aria-hidden="true"><defs>
+      <filter id="text-art-transparent" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+        <!-- Keep the original lettering and mint heart; key out the pale image rectangle. -->
+        <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -4 -4 -4 0 11"/>
+        <feComposite in2="SourceGraphic" operator="in"/>
+      </filter>
       <clipPath id="temperature-card-shape" clipPathUnits="objectBoundingBox">
         <ellipse cx=".497059" cy=".486486" rx=".35" ry=".321622"/>
         <ellipse cx=".489706" cy=".805405" rx=".085294" ry=".078378"/>
