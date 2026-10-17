@@ -9,20 +9,28 @@
     const {rotate,matrix}=window.TekoNumber3D;
     const allowAuto=!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let q=[0,0,0,1],active=false,drag=null,vx=0,vy=0,frame=0,lastFrame=0,draw,autoRotate=allowAuto;
+    let software=false;
+    function useSoftware(){if(software)return;software=true;draw=()=>{};setupSoftware();if(active)draw();}
     try {
       const gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
       if(!gl)throw new Error('WebGL unavailable');
       const vs=`attribute vec3 aPosition;attribute vec2 aUV;uniform mat3 uRotation;
-        varying vec3 vNormal;varying vec3 vLocal;varying vec2 vUV;
+        varying mediump vec3 vNormal;varying mediump vec3 vLocal;varying mediump vec2 vUV;
         void main(){vec3 p=uRotation*aPosition;gl_Position=vec4(p.xy*.985,-p.z*.8,1.);vNormal=p;vLocal=aPosition;vUV=aUV;}`;
-      const fs=`precision mediump float;varying vec3 vNormal;varying vec3 vLocal;varying vec2 vUV;
+      const fs=`
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        #else
+        precision mediump float;
+        #endif
+        varying mediump vec3 vNormal;varying mediump vec3 vLocal;varying mediump vec2 vUV;
         uniform sampler2D uSurface;uniform sampler2D uRelief;uniform float uTextured;uniform float uReliefReady;uniform mat3 uRotation;
         void main(){vec3 n=normalize(vNormal);
           if(uReliefReady>.5){vec2 slope=(texture2D(uRelief,vUV).rg*2.-1.)*1.15;float lon=(vUV.x-.5)*6.2831853;
             vec3 local=normalize(vLocal);vec3 tu=vec3(cos(lon),0.,-sin(lon));vec3 tv=normalize(cross(local,tu));
             n=normalize(uRotation*normalize(local-tu*slope.x-tv*slope.y));}
           vec3 light=normalize(vec3(-.4,.7,1.));float diffuse=max(dot(n,light),0.);
-          float grain=fract(sin(dot(vUV*vec2(1024.,512.),vec2(12.9898,78.233)))*43758.5453);
+          float grain=.5+.5*sin(vUV.x*180.)*sin(vUV.y*100.);
           vec3 color=vec3(1.,.23,.3)*(.89+.11*grain);
           if(uTextured>.5)color=texture2D(uSurface,vUV).rgb;
           else if(vLocal.z>0.){float spot=min(length((vLocal.xy-vec2(-.28,-.06))*vec2(1.,4.)),min(length((vLocal.xy-vec2(.13,.09))*vec2(1.,4.)),length((vLocal.xy-vec2(.47,-.04))*vec2(1.,4.))));color=mix(vec3(.12),color,smoothstep(.022,.04,spot));}
@@ -40,20 +48,29 @@
       function attribute(name,values,size){gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(values),gl.STATIC_DRAW);const location=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(location);gl.vertexAttribPointer(location,size,gl.FLOAT,false,0,0);}
       attribute('aPosition',positions,3);attribute('aUV',uv,2);
       const rotation=gl.getUniformLocation(program,'uRotation'),textured=gl.getUniformLocation(program,'uTextured');gl.uniform1f(textured,0);
+      gl.uniform1i(gl.getUniformLocation(program,'uSurface'),0);
+      let surfaceLoaded=false,checkPixels=true;
       const surfaceTexture=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,surfaceTexture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,74,87,255]));
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      function load(){try{gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,surfaceTexture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,texture);gl.uniform1f(textured,1);if(active)draw();}catch(_){/* Procedural spherical surface remains available. */}}
+      function load(){if(software)return;try{gl.useProgram(program);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,surfaceTexture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,texture);if(gl.getError()!==gl.NO_ERROR)throw new Error('Surface upload failed');surfaceLoaded=true;checkPixels=true;gl.uniform1f(textured,1);if(active)draw();}catch(_){useSoftware();}}
       texture.addEventListener('load',load);if(texture.complete&&texture.naturalWidth)load();
+      if(software)throw new Error('Using software surface');
       const reliefReady=gl.getUniformLocation(program,'uReliefReady'),reliefTexture=gl.createTexture();
       gl.uniform1i(gl.getUniformLocation(program,'uRelief'),1);gl.uniform1f(reliefReady,0);
       gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,reliefTexture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,1,1,0,gl.RGB,gl.UNSIGNED_BYTE,new Uint8Array([128,128,128]));
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      function loadRelief(){try{gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,reliefTexture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,relief);gl.uniform1f(reliefReady,1);if(active)draw();}catch(_){/* Colour and shape remain available if relief cannot load. */}}
+      function loadRelief(){if(software)return;try{gl.useProgram(program);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,reliefTexture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,relief);if(gl.getError()!==gl.NO_ERROR)throw new Error('Relief upload failed');checkPixels=true;gl.uniform1f(reliefReady,1);if(active)draw();}catch(_){useSoftware();}}
       if(relief){relief.addEventListener('load',loadRelief);if(relief.complete&&relief.naturalWidth)loadRelief();}
+      if(software)throw new Error('Using software relief');
       gl.activeTexture(gl.TEXTURE0);
       gl.enable(gl.DEPTH_TEST);gl.clearColor(0,0,0,0);
-      draw=()=>{gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniformMatrix3fv(rotation,false,new Float32Array(matrix(q)));gl.drawArrays(gl.TRIANGLES,0,positions.length/3);stage.classList.add('is-sun-ready');};
-    }catch(_){
+      draw=()=>{if(software)return;gl.useProgram(program);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,surfaceTexture);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,reliefTexture);gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniformMatrix3fv(rotation,false,new Float32Array(matrix(q)));gl.drawArrays(gl.TRIANGLES,0,positions.length/3);
+        if(gl.getError()!==gl.NO_ERROR){useSoftware();return;}
+        if(surfaceLoaded&&checkPixels){checkPixels=false;const pixel=new Uint8Array(4);let brightness=0;for(const x of [.38,.5,.62]){gl.readPixels(Math.floor(canvas.width*x),Math.floor(canvas.height*.5),1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);brightness+=Math.max(pixel[0],pixel[1],pixel[2]);}if(brightness<60){useSoftware();return;}}
+        stage.classList.add('is-sun-ready');};
+      canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();useSoftware();});
+    }catch(_){useSoftware();}
+    function setupSoftware(){
       // Analytic ray/sphere rendering preserves true 3D rotation without WebGL.
       let ctx=canvas.getContext('2d');
       if(!ctx){const replacement=document.createElement('canvas');replacement.className=canvas.className;canvas.replaceWith(replacement);canvas=replacement;ctx=canvas.getContext('2d');}

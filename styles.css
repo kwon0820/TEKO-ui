@@ -31,6 +31,17 @@ button:focus-visible { outline: 3px solid #7963ff; outline-offset: -5px; }
 }
 .phone img { -webkit-user-drag: none; }
 .screen { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Fill the physical phone viewport while keeping controls clear of the notch.
+   Desktop previews retain the original 390:844 frame. */
+@media (max-width: 600px) and (orientation: portrait) {
+  body { background: #fff; }
+  .phone { width: 100vw; height: 100vh; height: 100dvh; aspect-ratio: auto; background: #fff; }
+  .phone::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--mint); opacity: 0; }
+  .phone.is-intro:not(.has-started)::before { animation: background-in var(--background-duration) ease-in-out both; }
+  .screen { top: env(safe-area-inset-top,0px); bottom: auto; height: calc(100% - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)); }
+  .phone .status-bar { display: none; }
+  .phone .settings-sheet { padding-bottom: max(32px,env(safe-area-inset-bottom,0px)); }
+}
 .profile {
   background: #fff; opacity: 0;
   filter: blur(0);

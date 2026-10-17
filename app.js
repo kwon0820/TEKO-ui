@@ -150,6 +150,7 @@
       element.setAttribute('aria-hidden', String(!active));
     });
     current = id;
+    app.classList.add('has-started');
     if (id === 'profile') motion?.start(true);
     else motion?.stop();
     splash.classList.add('is-leaving');
@@ -249,6 +250,7 @@
     closeSettings(false);
     resetDashboard();
     current = 'splash';
+    app.classList.remove('has-started');
     number3d?.stop(true);
     temperatureFloat?.stop(true);
     temperatureGraph?.stop(true);
