@@ -10,7 +10,7 @@
 html, body { width: 100%; height: 100%; margin: 0; }
 body {
   display: grid; place-items: center; overflow: hidden;
-  background: #e9eceb; color: #080808;
+  background: #fff; color: #080808;
   font-family: Arial, 'Malgun Gothic', sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
@@ -31,6 +31,24 @@ button:focus-visible { outline: 3px solid #7963ff; outline-offset: -5px; }
 }
 .phone img { -webkit-user-drag: none; }
 .screen { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Fit one undistorted artboard inside the phone's usable area. Safe-area
+   padding belongs outside the artboard so all internal coordinates stay equal. */
+@media (max-width: 600px) and (orientation: portrait) {
+  body {
+    height: 100dvh;
+    padding: env(safe-area-inset-top,0px) env(safe-area-inset-right,0px)
+      env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+  }
+  .phone {
+    width: min(
+      calc(100vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)),
+      calc((100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) * 390 / 844)
+    );
+    height: auto;
+    aspect-ratio: 390 / 844;
+  }
+  .phone .status-bar { display: none; }
+}
 .profile {
   background: #fff; opacity: 0;
   filter: blur(0);
@@ -179,6 +197,7 @@ button:focus-visible { outline: 3px solid #7963ff; outline-offset: -5px; }
 .water-layer { left: 2.347418%; top: 47.915539%; width: 27.582160%; --reveal-delay: 350ms; }
 .message-layer { left: 25.821596%; top: 73.091500%; width: 49.882629%; --reveal-delay: 470ms; }
 .timeline-layer { left: 2.347418%; top: 78.234975%; width: 95.305164%; --reveal-delay: 600ms; }
+.timeline-layer img { clip-path: inset(1.5% 1% 1.8% round 8% / 20%); }
 .profile.has-details .dashboard-layer { transform: translate3d(0, -4cqw, 0); }
 .profile.is-dashboard .dashboard-layer {
   opacity: 1; visibility: visible; transform: translate3d(0, 0, 0);
