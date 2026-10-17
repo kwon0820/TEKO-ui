@@ -50,6 +50,18 @@ button:focus-visible { outline: 3px solid #7963ff; outline-offset: -5px; }
   }
   .phone .status-bar { display: none; }
 }
+/* Exhibition web app: use the device's full width rather than shrinking it
+   to the safe-area height. On iPhone 13 (DPR 3), 390 x 823 CSS pixels are
+   exactly 1170 x 2469 physical pixels. The remaining 21 CSS pixels sit above
+   the frame; the original header padding puts the logo below the status text. */
+@media (display-mode: standalone) and (max-width: 600px) and (orientation: portrait) {
+  body { padding: 0; place-items: start center; }
+  .phone {
+    width: 100vw;
+    height: calc(100vw * 823 / 390);
+    margin-top: max(0px, calc(100dvh - 100vw * 823 / 390));
+  }
+}
 .profile {
   background: #fff; opacity: 0;
   filter: blur(0);
@@ -80,6 +92,7 @@ button:focus-visible { outline: 3px solid #7963ff; outline-offset: -5px; }
 .weather.is-active.is-dragging { filter: blur(clamp(0px,calc(var(--weather-drag,0px) * .035),9px)); }
 .weather img { display: block; width: 100%; pointer-events: none; }
 .weather-ambient { position: absolute; inset: 0; width: 100%; height: 100%; }
+.weather-ambient { clip-path: inset(0 round 7% 7% 0 0 / 3.5% 3.5% 0 0); }
 .temperature-float-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .temperature-graph-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .weather-heading { position: absolute; left: 37.558685%; top: 10.557661%; width: 25.821596%; }
@@ -106,7 +119,7 @@ button:focus-visible { outline: 3px solid #7963ff; outline-offset: -5px; }
 .weather-settings { position: absolute; left: 86%; top: 2.4%; width: 10%; height: 3.8%; border: 0; background: none; cursor: pointer; }
 @keyframes weather-rise { from { opacity: 0; transform: translate3d(0,5cqw,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
 @keyframes weather-fall { from { opacity: var(--weather-exit-opacity,1); transform: var(--weather-exit-transform,translate3d(0,0,0)); } to { opacity: 0; transform: translate3d(0,5cqw,0); } }
-.light-page { background: radial-gradient(ellipse 41% 23% at 50% 36%,#ddf5ed 95%,#f4f5f4 100%); }
+.light-page { background: #fff; }
 .light-heading { position: absolute; left: 39.893617%; top: 9.103020%; width: 20.390071%; height: 10.879218%; }
 .light-sun { position: absolute; left: 22%; top: 36.19%; width: 56%; height: auto; aspect-ratio: 1; margin-top: -28cqw; }
 .sun-3d-stage { position: relative; width: 100%; height: 100%; aspect-ratio: 1; touch-action: none; cursor: grab; user-select: none; }
